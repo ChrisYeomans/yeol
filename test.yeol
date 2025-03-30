@@ -1,0 +1,4 @@
+let myvar = 100
+let other_var = 150
+let third_var = 100 + 150
+print 10
