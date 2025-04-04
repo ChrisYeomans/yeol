@@ -144,7 +144,7 @@ func (p *Parser) parseRel() RelNode {
 		relNode.termBinaryNode.lhs = lhs
 		relNode.termBinaryNode.rhs = rhs
 	} else {
-		panic("Expected reational (<) found " + token.tokenType)
+		panic("Expected relational (<) found " + token.tokenType)
 	}
 	return relNode
 }
@@ -169,7 +169,6 @@ func (p *Parser) parseIf() InstNode {
 	instNode.instType = INST_IF
 	p.parserAdvance()
 	instNode.ifNode.relNode = p.parseRel()
-	p.parserAdvance()
 	ifInstNode := p.parseInst()
 	instNode.ifNode.instNode = &ifInstNode
 	return instNode
@@ -195,6 +194,8 @@ func (p *Parser) parseInst() InstNode {
 		instNode = p.parsePrint()
 	} else if token.tokenType == LET {
 		p.parserAdvance()
+	} else {
+		p.parserAdvance()
 	}
 	return instNode
 }
@@ -205,6 +206,7 @@ func (p *Parser) parseProgram() ProgramNode {
 	var instNode InstNode
 	for p.index < len(p.tokens) {
 		instNode = p.parseInst()
+		// fmt.Println(instNode.instType)
 		if instNode.instType != "" {
 			// fmt.Println(instNode.instType)
 			programNode.instructions = append(programNode.instructions, instNode)

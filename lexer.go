@@ -77,6 +77,9 @@ func (l *Lexer) nextToken() Token {
 	} else if l.currChar() == '/' {
 		l.pos++
 		return Token{DIVIDE, ""}
+	} else if l.currChar() == '<' {
+		l.pos++
+		return Token{LESS_THAN, ""}
 	} else if unicode.IsDigit(rune(l.currChar())) {
 		for l.isBufferNotEmpty() && unicode.IsDigit(rune(l.currChar())) {
 			value.WriteString(string(l.currChar()))
@@ -116,8 +119,8 @@ func (l Lexer) tokenize() []Token {
 
 	for l.isBufferNotEmpty() {
 		token = l.nextToken()
-
 		if token.tokenType != SPACE {
+			// fmt.Println(token.tokenType)
 			tokens = append(tokens, token)
 		}
 

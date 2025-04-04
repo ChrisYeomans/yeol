@@ -99,7 +99,7 @@ func (a *Assembler) assembleInst(instNode InstNode) {
 		a.fileSb.WriteString("    test rax, rax\n")
 		a.fileSb.WriteString(fmt.Sprintf("    jz .endif%d\n", label))
 		a.assembleInst(*instNode.ifNode.instNode)
-		a.fileSb.WriteString(fmt.Sprintf(".endif%d\n", label))
+		a.fileSb.WriteString(fmt.Sprintf(".endif%d:\n", label))
 	case INST_PRINT:
 		a.assembleTerm(instNode.printNode.termNode)
 		a.fileSb.WriteString("    mov rdi, 1\n")
@@ -144,9 +144,9 @@ func (a *Assembler) assembleRel(relNode RelNode) {
 		a.fileSb.WriteString("    mov rdx, rax\n")
 		a.assembleTerm(relNode.termBinaryNode.rhs)
 		a.fileSb.WriteString("    cmp rdx, rax\n")
-		a.fileSb.WriteString("    set1 al\n")
+		a.fileSb.WriteString("    setl al\n")
 		a.fileSb.WriteString("    and al, 1\n")
-		a.fileSb.WriteString("    movzx rax, al")
+		a.fileSb.WriteString("    movzx rax, al\n")
 	}
 }
 
