@@ -1,24 +1,27 @@
-macro read fd, buff, count {
+%macro read 3
     mov rax, 0
-    mov rdi, fd
-    mov rsi, buff
-    mov rdx, count
+    mov rdi, %1
+    mov rsi, %2
+    mov rdx, %3
     syscall
-}
+%endmacro
 
-macro exit_program {
-  xor    rdi, rdi ; exit code 0
-  mov    rax, 60 ; sys_exit
-  syscall
-}
+%macro exit_program 1
+    xor rdi, %1
+    mov rax, 60
+    syscall
+    ret
+%endmacro
 
-macro write fd, buf, count {
+
+
+%macro write 3
    mov rax, 1
-   mov rdi, fd
-   mov rsi, buf
-   mov rdx, count
+   mov rdi, %1
+   mov rsi, %2
+   mov rdx, %3
    syscall 
-}
+%endmacro
 
 ;; Parse unsigned integer from a sized string
 ;;   rdi - void *buf

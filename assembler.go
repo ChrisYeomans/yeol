@@ -64,12 +64,11 @@ func (a *Assembler) assembleProgram() {
 		a.instrDeclareVariables(instNode)
 	}
 
-	a.fileSb.WriteString("format ELF64 executable\n")
 	a.fileSb.WriteString("LINE_MAX equ 1024\n")
-	a.fileSb.WriteString("segment readable executable\n")
-	a.fileSb.WriteString("include \"string.inc\"\n")
-	a.fileSb.WriteString("include \"util.inc\"\n")
-	a.fileSb.WriteString("entry _start\n")
+	a.fileSb.WriteString("%include \"string.inc\"\n")
+	a.fileSb.WriteString("%include \"util.inc\"\n")
+	a.fileSb.WriteString("SECTION .text\n")
+	a.fileSb.WriteString("global _start\n")
 	a.fileSb.WriteString("_start:\n")
 
 	a.fileSb.WriteString("mov rbp, rsp\n")
@@ -81,10 +80,10 @@ func (a *Assembler) assembleProgram() {
 
 	a.fileSb.WriteString(fmt.Sprintf("    add rsp, %d\n", len(a.variables)*8))
 
-	a.fileSb.WriteString("    exit_program\n")
+	a.fileSb.WriteString("    exit_program 0\n")
 
-	a.fileSb.WriteString("segment readable writeable\n")
-	a.fileSb.WriteString("line rb LINE_MAX\n")
+	a.fileSb.WriteString("SECTION .bss\n")
+	a.fileSb.WriteString("    line: resb LINE_MAX\n")
 }
 
 func (a *Assembler) assembleInst(instNode InstNode) {

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -29,13 +28,13 @@ func main() {
 	a := Assembler{programNode, []string{}, 0, strings.Builder{}}
 	a.assembleProgram()
 
-	os.WriteFile("./tmp.asm", []byte(a.fileSb.String()), 0644)
-	cmd := exec.Command("fasm", "./tmp.asm -s", outputFileName)
-	stdout, _ := cmd.Output()
-	fmt.Println(string(stdout))
-	cmd = exec.Command("rm", "tmp.asm")
-	stdout, _ = cmd.Output()
-	fmt.Println(string(stdout))
+	os.WriteFile("./"+outputFileName+".asm", []byte(a.fileSb.String()), 0644)
+	// cmd := exec.Command("fasm", "./tmp.asm -s", outputFileName)
+	// stdout, _ := cmd.Output()
+	// fmt.Println(string(stdout))
+	// acmd = exec.Command("rm", "tmp.asm")
+	// stdout, _ = cmd.Output()
+	// fmt.Println(string(stdout))
 	//	stdout, _ := cmd.Output()
 	// os.WriteFile("./test", stdout, 0644)
 	//	fmt.Println(string(stdout))
