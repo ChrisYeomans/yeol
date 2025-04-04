@@ -30,7 +30,7 @@ func main() {
 	a.assembleProgram()
 
 	os.WriteFile("./tmp.asm", []byte(a.fileSb.String()), 0644)
-	cmd := exec.Command("fasm", "./tmp.asm", outputFileName)
+	cmd := exec.Command("fasm", "./tmp.asm -s", outputFileName)
 	stdout, _ := cmd.Output()
 	fmt.Println(string(stdout))
 	cmd = exec.Command("rm", "tmp.asm")

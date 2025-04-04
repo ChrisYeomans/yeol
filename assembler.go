@@ -67,8 +67,8 @@ func (a *Assembler) assembleProgram() {
 	a.fileSb.WriteString("format ELF64 executable\n")
 	a.fileSb.WriteString("LINE_MAX equ 1024\n")
 	a.fileSb.WriteString("segment readable executable\n")
-	a.fileSb.WriteString("include \"linux.inc\"\n")
-	a.fileSb.WriteString("include \"utils.inc\"\n")
+	a.fileSb.WriteString("include \"string.inc\"\n")
+	a.fileSb.WriteString("include \"util.inc\"\n")
 	a.fileSb.WriteString("entry _start\n")
 	a.fileSb.WriteString("_start:\n")
 
@@ -81,9 +81,7 @@ func (a *Assembler) assembleProgram() {
 
 	a.fileSb.WriteString(fmt.Sprintf("    add rsp, %d\n", len(a.variables)*8))
 
-	a.fileSb.WriteString("    mov rax, 60\n")
-	a.fileSb.WriteString("    xor rdi, rdi\n")
-	a.fileSb.WriteString("    syscall\n")
+	a.fileSb.WriteString("    exit_program\n")
 
 	a.fileSb.WriteString("segment readable writeable\n")
 	a.fileSb.WriteString("line rb LINE_MAX\n")

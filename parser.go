@@ -86,7 +86,10 @@ func newParser(tokens []Token) Parser {
 }
 
 func (p Parser) parserCurrent() Token {
-	return p.tokens[p.index]
+	if p.index < len(p.tokens) {
+		return p.tokens[p.index]
+	}
+	return Token{tokenType: END}
 }
 
 func (p *Parser) parserAdvance() {
