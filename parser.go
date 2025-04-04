@@ -6,6 +6,7 @@ const (
 	INST_ASSIGN InstType = "INST_ASSIGN"
 	INST_IF     InstType = "INST_IF"
 	INST_PRINT  InstType = "INST_PRINT"
+	INST_ELSE   InstType = "INST_ELSE"
 )
 
 type ExprType string
@@ -58,6 +59,7 @@ type AssignNode struct {
 type IfNode struct {
 	relNode  RelNode
 	instNode *InstNode
+	elseInst *InstNode
 }
 
 type PrintNode struct {
@@ -171,6 +173,11 @@ func (p *Parser) parseIf() InstNode {
 	instNode.ifNode.relNode = p.parseRel()
 	ifInstNode := p.parseInst()
 	instNode.ifNode.instNode = &ifInstNode
+	if p.parserCurrent().tokenType == ELSE {
+		p.parserAdvance()
+		elseInstNode := p.parseInst()
+		instNode.ifNode.elseInst = &elseInstNode
+	}
 	return instNode
 }
 

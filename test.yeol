@@ -1,2 +1,5 @@
 let other_var = input
-print other_var
+if 10 < other_var
+  print 7
+  else
+  print other_var

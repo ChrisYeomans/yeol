@@ -96,10 +96,20 @@ func (a *Assembler) assembleInst(instNode InstNode) {
 		a.assembleRel(instNode.ifNode.relNode)
 		label := a.ifCount
 		a.ifCount++
-		a.fileSb.WriteString("    test rax, rax\n")
-		a.fileSb.WriteString(fmt.Sprintf("    jz .endif%d\n", label))
-		a.assembleInst(*instNode.ifNode.instNode)
-		a.fileSb.WriteString(fmt.Sprintf(".endif%d:\n", label))
+		if instNode.ifNode.elseInst != nil {
+			a.fileSb.WriteString("    test rax, rax\n")
+			a.fileSb.WriteString(fmt.Sprintf("    jz .else%d\n", label))
+			a.assembleInst(*instNode.ifNode.instNode)
+			a.fileSb.WriteString(fmt.Sprintf("    jmp .endif%d\n", label))
+			a.fileSb.WriteString(fmt.Sprintf(".else%d:\n", label))
+			a.assembleInst(*instNode.ifNode.elseInst)
+			a.fileSb.WriteString(fmt.Sprintf(".endif%d:\n", label))
+		} else {
+			a.fileSb.WriteString("    test rax, rax\n")
+			a.fileSb.WriteString(fmt.Sprintf("    jz .endif%d\n", label))
+			a.assembleInst(*instNode.ifNode.instNode)
+			a.fileSb.WriteString(fmt.Sprintf(".endif%d:\n", label))
+		}
 	case INST_PRINT:
 		a.assembleTerm(instNode.printNode.termNode)
 		a.fileSb.WriteString("    mov rdi, 1\n")
