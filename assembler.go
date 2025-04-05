@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -126,7 +125,6 @@ func (a *Assembler) assembleInst(instNode InstNode) {
 }
 
 func (a *Assembler) assembleBlock(blockNode BlockNode) {
-	fmt.Println("Assembling block length: " + strconv.Itoa(len(blockNode.instructions)))
 	for _, inst := range blockNode.instructions {
 		a.assembleInst(inst)
 	}

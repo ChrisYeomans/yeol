@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
 )
@@ -129,7 +128,7 @@ func (l Lexer) tokenize() []Token {
 	for l.isBufferNotEmpty() {
 		token = l.nextToken()
 		if token.tokenType != SPACE {
-			fmt.Println(token.tokenType)
+			// fmt.Println(token.tokenType)
 			tokens = append(tokens, token)
 		}
 

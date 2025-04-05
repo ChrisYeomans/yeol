@@ -8,3 +8,4 @@ expression = term | term + term | term - term | term / term | term * term | term
 rel = term < term | term > term | term <= term | term >= term | term == term | term != term
 instr = variable = expression | <if> rel <then> instr | <print> term
 ```
+

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func main() {
+func basic_compile() {
 	inputFileName := os.Args[1]
 	var outputFileName string
 	if len(os.Args) < 3 {

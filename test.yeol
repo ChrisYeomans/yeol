@@ -1,9 +1,2 @@
-let other_var = input
-if 10 < other_var {
-  print other_var
-  print 10
-} else {
-    print 4
-    print other_var
-  }
- 
+let other_var = 12 
+print 12 
