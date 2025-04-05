@@ -2,6 +2,7 @@
 
 #### Grammer
 ```text
+block = { instr[] }
 term = <input> | variable | literal
 expression = term | term + term | term - term | term / term | term * term | term % term
 rel = term < term | term > term | term <= term | term >= term | term == term | term != term

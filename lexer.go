@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 )
@@ -34,6 +35,8 @@ const (
 	INVALID            TokenType = "INVALID"
 	END                TokenType = "END"
 	SPACE              TokenType = "SPACE"
+	BLOCK_START        TokenType = "BLOCK_START"
+	BLOCK_END          TokenType = "BLOCK_END"
 )
 
 type Token struct {
@@ -59,6 +62,12 @@ func (l *Lexer) nextToken() Token {
 	if unicode.IsSpace(rune(l.currChar())) {
 		l.pos++
 		return Token{SPACE, ""}
+	} else if l.currChar() == '{' {
+		l.pos++
+		return Token{BLOCK_START, ""}
+	} else if l.currChar() == '}' {
+		l.pos++
+		return Token{BLOCK_END, ""}
 	} else if l.currChar() == '=' {
 		l.pos++
 		return Token{EQUAL, ""}
@@ -120,7 +129,7 @@ func (l Lexer) tokenize() []Token {
 	for l.isBufferNotEmpty() {
 		token = l.nextToken()
 		if token.tokenType != SPACE {
-			// fmt.Println(token.tokenType)
+			fmt.Println(token.tokenType)
 			tokens = append(tokens, token)
 		}
 

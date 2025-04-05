@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -23,9 +24,15 @@ func (a *Assembler) instrDeclareVariables(instNode InstNode) {
 		a.variables = append(a.variables, instNode.assignNode.identifier)
 	case INST_IF:
 		a.relDeclareVariables(instNode.ifNode.relNode)
-		a.instrDeclareVariables(*instNode.ifNode.instNode)
+		a.blockDeclareVariables(instNode.ifNode.ifBlockNode)
 	case INST_PRINT:
 		a.termDeclareVariables(instNode.printNode.termNode)
+	}
+}
+
+func (a *Assembler) blockDeclareVariables(blockNode BlockNode) {
+	for _, inst := range blockNode.instructions {
+		a.instrDeclareVariables(inst)
 	}
 }
 
@@ -96,18 +103,18 @@ func (a *Assembler) assembleInst(instNode InstNode) {
 		a.assembleRel(instNode.ifNode.relNode)
 		label := a.ifCount
 		a.ifCount++
-		if instNode.ifNode.elseInst != nil {
+		if len(instNode.ifNode.elseBlockNode.instructions) > 0 {
 			a.fileSb.WriteString("    test rax, rax\n")
 			a.fileSb.WriteString(fmt.Sprintf("    jz .else%d\n", label))
-			a.assembleInst(*instNode.ifNode.instNode)
+			a.assembleBlock(instNode.ifNode.ifBlockNode)
 			a.fileSb.WriteString(fmt.Sprintf("    jmp .endif%d\n", label))
 			a.fileSb.WriteString(fmt.Sprintf(".else%d:\n", label))
-			a.assembleInst(*instNode.ifNode.elseInst)
+			a.assembleBlock(instNode.ifNode.elseBlockNode)
 			a.fileSb.WriteString(fmt.Sprintf(".endif%d:\n", label))
 		} else {
 			a.fileSb.WriteString("    test rax, rax\n")
 			a.fileSb.WriteString(fmt.Sprintf("    jz .endif%d\n", label))
-			a.assembleInst(*instNode.ifNode.instNode)
+			a.assembleBlock(instNode.ifNode.ifBlockNode)
 			a.fileSb.WriteString(fmt.Sprintf(".endif%d:\n", label))
 		}
 	case INST_PRINT:
@@ -115,6 +122,13 @@ func (a *Assembler) assembleInst(instNode InstNode) {
 		a.fileSb.WriteString("    mov rdi, 1\n")
 		a.fileSb.WriteString("    mov rsi, rax\n")
 		a.fileSb.WriteString("    call write_uint\n")
+	}
+}
+
+func (a *Assembler) assembleBlock(blockNode BlockNode) {
+	fmt.Println("Assembling block length: " + strconv.Itoa(len(blockNode.instructions)))
+	for _, inst := range blockNode.instructions {
+		a.assembleInst(inst)
 	}
 }
 

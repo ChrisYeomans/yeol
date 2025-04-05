@@ -57,13 +57,17 @@ type AssignNode struct {
 }
 
 type IfNode struct {
-	relNode  RelNode
-	instNode *InstNode
-	elseInst *InstNode
+	relNode       RelNode
+	ifBlockNode   BlockNode
+	elseBlockNode BlockNode
 }
 
 type PrintNode struct {
 	termNode TermNode
+}
+
+type BlockNode struct {
+	instructions []InstNode
 }
 
 type InstNode struct {
@@ -95,6 +99,9 @@ func (p Parser) parserCurrent() Token {
 }
 
 func (p *Parser) parserAdvance() {
+	if p.index >= len(p.tokens) {
+		panic("Error finished all tokens")
+	}
 	p.index++
 }
 
@@ -151,6 +158,23 @@ func (p *Parser) parseRel() RelNode {
 	return relNode
 }
 
+func (p *Parser) parseBlock() BlockNode {
+	blockNode := BlockNode{}
+	currentNode := p.parserCurrent()
+	for {
+		if currentNode.tokenType == BLOCK_END {
+			p.parserAdvance()
+			return blockNode
+		} else {
+			instNode := p.parseInst()
+			if instNode.instType != "" {
+				blockNode.instructions = append(blockNode.instructions, instNode)
+			}
+			currentNode = p.parserCurrent()
+		}
+	}
+}
+
 func (p *Parser) parseAssign() InstNode {
 	token := p.parserCurrent()
 	instNode := InstNode{}
@@ -171,12 +195,17 @@ func (p *Parser) parseIf() InstNode {
 	instNode.instType = INST_IF
 	p.parserAdvance()
 	instNode.ifNode.relNode = p.parseRel()
-	ifInstNode := p.parseInst()
-	instNode.ifNode.instNode = &ifInstNode
+	token := p.parserCurrent()
+	if token.tokenType == BLOCK_START {
+		p.parserAdvance()
+		instNode.ifNode.ifBlockNode = p.parseBlock()
+	}
 	if p.parserCurrent().tokenType == ELSE {
 		p.parserAdvance()
-		elseInstNode := p.parseInst()
-		instNode.ifNode.elseInst = &elseInstNode
+		if token.tokenType == BLOCK_START {
+			p.parserAdvance()
+			instNode.ifNode.elseBlockNode = p.parseBlock()
+		}
 	}
 	return instNode
 }
