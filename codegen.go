@@ -12,8 +12,9 @@ import (
 )
 
 type Compiler struct {
-	programNode ProgramNode
-	module      *ir.Module
+	programNode    ProgramNode
+	module         *ir.Module
+	currentContext Context
 }
 
 type Context struct {
@@ -28,7 +29,7 @@ func NewCString(s string) *constant.CharArray {
 }
 
 func newCompiler(programNode ProgramNode) Compiler {
-	return Compiler{programNode, ir.NewModule()}
+	return Compiler{programNode, ir.NewModule(), Context{}}
 }
 
 func newContext(b *ir.Block, compiler *Compiler) *Context {
@@ -54,12 +55,13 @@ func (c *Compiler) compileProgram() {
 
 	mainFunc := c.module.NewFunc("main", types.I32)
 	b := mainFunc.NewBlock("")
-	mainContext := newContext(b, c)
-	mainContext.parent = mainContext
+	starterContext := newContext(b, c)
+	c.currentContext = *starterContext
+	// c.currentContext.NewRet(constant.NewInt(types.I32, 0))
 	for _, inst := range c.programNode.instructions {
-		mainContext.compileInst(inst)
+		c.currentContext.compileInst(inst)
 	}
-	b.NewRet(constant.NewInt(types.I32, 0))
+	c.currentContext.NewRet(constant.NewInt(types.I32, 0))
 }
 
 func (c *Context) compileBlock(blockNode BlockNode) {
@@ -76,13 +78,21 @@ func (c *Context) compileInst(instNode InstNode) {
 		c.NewStore(c.compileExpr(instNode.assignNode.expr), v)
 		c.vars[instNode.assignNode.identifier] = v
 	case INST_IF:
-		thenCtx := c.newContext(f.NewBlock("if.then"), c.compiler)
+		thenCtx := c.newContext(f.NewBlock(""), c.compiler)
+		leaveBlock := f.NewBlock("")
+		c.compiler.currentContext.NewBr(thenCtx.Block)
+		c.compiler.currentContext = *c.newContext(leaveBlock, c.compiler)
+
 		thenCtx.compileBlock(instNode.ifNode.ifBlockNode)
-		elseBlock := f.NewBlock("if.else")
-		c.newContext(elseBlock, c.compiler).compileBlock(instNode.ifNode.elseBlockNode)
-		c.NewCondBr(c.compileRel(instNode.ifNode.relNode), thenCtx.Block, elseBlock)
-		leaveBlock := f.NewBlock("leave.if")
+		if len(instNode.ifNode.elseBlockNode.instructions) > 0 {
+			elseBlock := f.NewBlock("")
+			c.newContext(elseBlock, c.compiler).compileBlock(instNode.ifNode.elseBlockNode)
+			c.NewCondBr(c.compileRel(instNode.ifNode.relNode), thenCtx.Block, elseBlock)
+			elseBlock.NewBr(leaveBlock)
+		}
+
 		thenCtx.NewBr(leaveBlock)
+
 	case INST_PRINT:
 		zero := constant.NewInt(types.I32, 0)
 		printIntegerFormat := c.getPrintIntegerFormat()
