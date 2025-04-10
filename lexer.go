@@ -36,6 +36,9 @@ const (
 	SPACE              TokenType = "SPACE"
 	BLOCK_START        TokenType = "BLOCK_START"
 	BLOCK_END          TokenType = "BLOCK_END"
+	METHOD             TokenType = "METHOD"
+	TYPE               TokenType = "TYPE"
+	CLASS              TokenType = "CLASS"
 )
 
 type Token struct {
@@ -111,6 +114,10 @@ func (l *Lexer) nextToken() Token {
 			return Token{ELSE, ""}
 		} else if value.String() == "let" {
 			return Token{LET, ""}
+		} else if value.String() == "method" {
+			return Token{METHOD, ""}
+		} else if value.String() == "class" {
+			return Token{CLASS, ""}
 		} else {
 			return Token{IDENTIFIER, value.String()}
 		}

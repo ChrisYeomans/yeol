@@ -7,6 +7,8 @@ const (
 	INST_IF     InstType = "INST_IF"
 	INST_PRINT  InstType = "INST_PRINT"
 	INST_ELSE   InstType = "INST_ELSE"
+	INST_METHOD InstType = "INST_METHOD"
+	INST_CLASS  InstType = "INST_CLASS"
 )
 
 type ExprType string
@@ -70,11 +72,26 @@ type BlockNode struct {
 	instructions []InstNode
 }
 
+type ClassNode struct {
+	className     string
+	functionNames []string
+	varNames      []string
+	blockNode     BlockNode
+}
+
+type MethodNode struct {
+	methodName string
+	varNames   []string
+	blockNode  BlockNode
+}
+
 type InstNode struct {
 	instType   InstType
 	assignNode AssignNode
 	ifNode     IfNode
 	printNode  PrintNode
+	methodNode MethodNode
+	classNode  ClassNode
 }
 
 type ProgramNode struct {
@@ -85,6 +102,16 @@ type ProgramNode struct {
 type Parser struct {
 	tokens []Token
 	index  int
+}
+
+func (b BlockNode) getFunctionNames() []string {
+	functionNames := []string{}
+	return functionNames
+}
+
+func (b BlockNode) getVarNames() []string {
+	varNames := []string{}
+	return varNames
 }
 
 func newParser(tokens []Token) Parser {
@@ -176,6 +203,7 @@ func (p *Parser) parseBlock() BlockNode {
 }
 
 func (p *Parser) parseAssign() InstNode {
+	p.parserAdvance()
 	token := p.parserCurrent()
 	instNode := InstNode{}
 	instNode.instType = INST_ASSIGN
@@ -218,18 +246,47 @@ func (p *Parser) parsePrint() InstNode {
 	return instNode
 }
 
+func (p *Parser) parseClass() InstNode {
+	instNode := InstNode{}
+	instNode.instType = INST_CLASS
+	p.parserAdvance()
+	nameToken := p.parserCurrent()
+	p.parserAdvance()
+	classBlockNode := p.parseBlock()
+	instNode.classNode.blockNode = classBlockNode
+	instNode.classNode.className = nameToken.value
+	instNode.classNode.functionNames = classBlockNode.getFunctionNames()
+	instNode.classNode.varNames = classBlockNode.getVarNames()
+	return instNode
+}
+
+func (p *Parser) parseMethod() InstNode {
+	instNode := InstNode{}
+	instNode.instType = INST_METHOD
+	p.parserAdvance()
+	nameToken := p.parserCurrent()
+	p.parserAdvance()
+	methodBlockNode := p.parseBlock()
+	instNode.methodNode.blockNode = methodBlockNode
+	instNode.methodNode.methodName = nameToken.value
+	instNode.methodNode.varNames = methodBlockNode.getVarNames()
+	return instNode
+}
+
 func (p *Parser) parseInst() InstNode {
 	var token Token
 	var instNode InstNode
 	token = p.parserCurrent()
-	if token.tokenType == IDENTIFIER {
+	if token.tokenType == LET {
 		instNode = p.parseAssign()
 	} else if token.tokenType == IF {
 		instNode = p.parseIf()
 	} else if token.tokenType == PRINT {
 		instNode = p.parsePrint()
-	} else if token.tokenType == LET {
-		p.parserAdvance()
+	} else if token.tokenType == CLASS {
+		p.parseClass()
+	} else if token.tokenType == METHOD {
+		p.parseMethod()
 	} else {
 		p.parserAdvance()
 	}

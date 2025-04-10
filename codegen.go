@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/llir/llvm/ir"
@@ -49,6 +50,8 @@ func (c *Compiler) compileProgram() {
 	printf := c.module.NewFunc("printf", types.I32,
 		ir.NewParam("format", types.NewPointer(types.I8)))
 	printf.Sig.Variadic = true
+	c.module.NewGlobalDef("printIntegerFormat", NewCString("%d\n"))
+
 	mainFunc := c.module.NewFunc("main", types.I32)
 	b := mainFunc.NewBlock("")
 	mainContext := newContext(b, c)
@@ -71,18 +74,41 @@ func (c *Context) compileInst(instNode InstNode) {
 	case INST_ASSIGN:
 		v := c.NewAlloca(types.I32)
 		c.NewStore(c.compileExpr(instNode.assignNode.expr), v)
+		c.vars[instNode.assignNode.identifier] = v
 	case INST_IF:
 		thenCtx := c.newContext(f.NewBlock("if.then"), c.compiler)
 		thenCtx.compileBlock(instNode.ifNode.ifBlockNode)
 		elseBlock := f.NewBlock("if.else")
 		c.newContext(elseBlock, c.compiler).compileBlock(instNode.ifNode.elseBlockNode)
 		c.NewCondBr(c.compileRel(instNode.ifNode.relNode), thenCtx.Block, elseBlock)
+		leaveBlock := f.NewBlock("leave.if")
+		thenCtx.NewBr(leaveBlock)
 	case INST_PRINT:
 		zero := constant.NewInt(types.I32, 0)
-		printIntegerFormat := c.compiler.module.NewGlobalDef("tmp", NewCString("%d\n"))
+		printIntegerFormat := c.getPrintIntegerFormat()
 		pointerToString := c.NewGetElementPtr(types.NewArray(3, types.I8), printIntegerFormat, zero, zero)
-		c.NewCall(c.compiler.module.Funcs[0], pointerToString, c.compileTerm(instNode.printNode.termNode), constant.NewInt(types.I32, 0))
+		c.NewCall(c.getPrintfFunc(),
+			pointerToString,
+			c.compileTerm(instNode.printNode.termNode))
 	}
+}
+
+func (c *Context) getPrintfFunc() *ir.Func {
+	for _, fun := range c.compiler.module.Funcs {
+		if fun.GlobalName == "printf" {
+			return fun
+		}
+	}
+	panic("Couldn't find prinf function")
+}
+
+func (c Context) getPrintIntegerFormat() *ir.Global {
+	for _, gl := range c.compiler.module.Globals {
+		if gl.GlobalName == "printIntegerFormat" {
+			return gl
+		}
+	}
+	panic("Couldn't find printIntegerFormat global")
 }
 
 func (c *Context) compileRel(relNode RelNode) value.Value {
@@ -100,9 +126,22 @@ func (c *Context) compileTerm(termNode TermNode) value.Value {
 	case TERM_INT:
 		value, _ := strconv.ParseInt(termNode.value, 10, 32)
 		return constant.NewInt(types.I32, value)
+	case TERM_IDENT:
+		return c.NewLoad(types.I32, c.lookupVariable(termNode.value))
 	}
 
 	panic("Unknown Term")
+}
+
+func (c *Context) lookupVariable(name string) value.Value {
+	if v, ok := c.vars[name]; ok {
+		return v
+	} else if c.parent != nil {
+		return c.parent.lookupVariable(name)
+	} else {
+		fmt.Printf("variable `%s`\n", name)
+		panic("no such variable")
+	}
 }
 
 func (c *Context) compileExpr(exprNode ExprNode) value.Value {
