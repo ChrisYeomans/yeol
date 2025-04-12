@@ -1,11 +1,12 @@
 let other_var = 12 
-if 1 < 2 {
+if 3 < 2 {
     print 2
-    if 2 < 3 {
+    if 4 < 3 {
         print 4
       } else {
           print 5
         }
+        print 7
   } else {
       print 1
     }

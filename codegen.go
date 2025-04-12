@@ -41,8 +41,8 @@ func newContext(b *ir.Block, compiler *Compiler) *Context {
 	}
 }
 
-func (c *Context) newContext(b *ir.Block, compiler *Compiler) *Context {
-	ctx := newContext(b, compiler)
+func (c *Context) newContext(b *ir.Block) *Context {
+	ctx := newContext(b, c.compiler)
 	ctx.parent = c
 	return ctx
 }
@@ -56,43 +56,46 @@ func (c *Compiler) compileProgram() {
 	mainFunc := c.module.NewFunc("main", types.I32)
 	b := mainFunc.NewBlock("")
 	starterContext := newContext(b, c)
-	c.currentContext = *starterContext
+	currentContext := *starterContext
 	// c.currentContext.NewRet(constant.NewInt(types.I32, 0))
 	for _, inst := range c.programNode.instructions {
-		c.currentContext.compileInst(inst)
+		currentContext = *currentContext.compileInst(inst)
 	}
-	c.currentContext.NewRet(constant.NewInt(types.I32, 0))
+	currentContext.NewRet(constant.NewInt(types.I32, 0))
 }
 
-func (c *Context) compileBlock(blockNode BlockNode) {
+func (c *Context) compileBlock(blockNode BlockNode) *Context {
+	currentContext := c
 	for _, inst := range blockNode.instructions {
-		c.compileInst(inst)
+		currentContext = currentContext.compileInst(inst)
 	}
+	return currentContext
 }
 
-func (c *Context) compileInst(instNode InstNode) {
+func (c *Context) compileInst(instNode InstNode) *Context {
 	f := c.Parent
 	switch instNode.instType {
 	case INST_ASSIGN:
 		v := c.NewAlloca(types.I32)
 		c.NewStore(c.compileExpr(instNode.assignNode.expr), v)
 		c.vars[instNode.assignNode.identifier] = v
+		return c
 	case INST_IF:
-		thenCtx := c.newContext(f.NewBlock(""), c.compiler)
+		thenBlock := f.NewBlock("")
+		thenInCtx := c.newContext(thenBlock)
+		thenCtx := thenInCtx.compileBlock(instNode.ifNode.ifBlockNode)
 		leaveBlock := f.NewBlock("")
-		c.compiler.currentContext.NewBr(thenCtx.Block)
-		c.compiler.currentContext = *c.newContext(leaveBlock, c.compiler)
-
-		thenCtx.compileBlock(instNode.ifNode.ifBlockNode)
+		c.NewCondBr(c.compileRel(instNode.ifNode.relNode), thenInCtx.Block, leaveBlock)
 		if len(instNode.ifNode.elseBlockNode.instructions) > 0 {
 			elseBlock := f.NewBlock("")
-			c.newContext(elseBlock, c.compiler).compileBlock(instNode.ifNode.elseBlockNode)
-			c.NewCondBr(c.compileRel(instNode.ifNode.relNode), thenCtx.Block, elseBlock)
-			elseBlock.NewBr(leaveBlock)
+			elseInCtx := c.newContext(elseBlock)
+			elseCtx := elseInCtx.compileBlock(instNode.ifNode.elseBlockNode)
+			c.NewCondBr(c.compileRel(instNode.ifNode.relNode), thenInCtx.Block, elseInCtx.Block)
+			elseCtx.NewBr(leaveBlock)
 		}
-
 		thenCtx.NewBr(leaveBlock)
 
+		return c.newContext(leaveBlock)
 	case INST_PRINT:
 		zero := constant.NewInt(types.I32, 0)
 		printIntegerFormat := c.getPrintIntegerFormat()
@@ -100,7 +103,9 @@ func (c *Context) compileInst(instNode InstNode) {
 		c.NewCall(c.getPrintfFunc(),
 			pointerToString,
 			c.compileTerm(instNode.printNode.termNode))
+		return c
 	}
+	panic("Error no context to return")
 }
 
 func (c *Context) getPrintfFunc() *ir.Func {
