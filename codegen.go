@@ -72,13 +72,21 @@ func (c *Context) compileBlock(blockNode BlockNode) *Context {
 	return currentContext
 }
 
+func (c *Context) compileAssign(assignNode AssignNode) {
+	var v *ir.InstAlloca
+	switch assignNode.typeName {
+	case "int":
+		v = c.NewAlloca(types.I32)
+	}
+	c.NewStore(c.compileExpr(assignNode.expr), v)
+	c.vars[assignNode.identifier] = v
+}
+
 func (c *Context) compileInst(instNode InstNode) *Context {
 	f := c.Parent
 	switch instNode.instType {
 	case INST_ASSIGN:
-		v := c.NewAlloca(types.I32)
-		c.NewStore(c.compileExpr(instNode.assignNode.expr), v)
-		c.vars[instNode.assignNode.identifier] = v
+		c.compileAssign(instNode.assignNode)
 		return c
 	case INST_IF:
 		thenBlock := f.NewBlock("")
@@ -104,8 +112,35 @@ func (c *Context) compileInst(instNode InstNode) *Context {
 			pointerToString,
 			c.compileTerm(instNode.printNode.termNode))
 		return c
+	case INST_METHOD:
+		returnType := c.getTypeFromName(instNode.methodNode.returnType)
+		params := c.getMethodParams(instNode.methodNode)
+		fnc := c.compiler.module.NewFunc(instNode.methodNode.methodName, returnType, params...)
+		c.newContext(fnc.NewBlock("")).compileBlock(instNode.methodNode.blockNode)
+		return c
+	case INST_RETURN:
+		c.NewRet(c.compileExpr(instNode.returnNode.exprNode))
+		return c
 	}
 	panic("Error no context to return")
+}
+
+func (c Context) getMethodParams(methodNode MethodNode) []*ir.Param {
+	params := []*ir.Param{}
+	for name, typeName := range methodNode.parameters {
+		params = append(params, ir.NewParam(name, c.getTypeFromName(typeName)))
+	}
+	return params
+}
+
+func (c Context) getTypeFromName(typeName string) types.Type {
+	switch typeName {
+	case "int":
+		return types.I32
+	default:
+		// TODO check custom types
+	}
+	return types.Void
 }
 
 func (c *Context) getPrintfFunc() *ir.Func {

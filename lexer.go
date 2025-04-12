@@ -39,6 +39,10 @@ const (
 	METHOD             TokenType = "METHOD"
 	TYPE               TokenType = "TYPE"
 	CLASS              TokenType = "CLASS"
+	OPEN_PAREN         TokenType = "OPEN_PAREN"
+	CLOSE_PAREN        TokenType = "CLOSE_PAREN"
+	COLON              TokenType = "COLON"
+	RETURN             TokenType = "RETURN"
 )
 
 type Token struct {
@@ -70,6 +74,15 @@ func (l *Lexer) nextToken() Token {
 	} else if l.currChar() == '}' {
 		l.pos++
 		return Token{BLOCK_END, ""}
+	} else if l.currChar() == '(' {
+		l.pos++
+		return Token{OPEN_PAREN, ""}
+	} else if l.currChar() == ')' {
+		l.pos++
+		return Token{CLOSE_PAREN, ""}
+	} else if l.currChar() == ':' {
+		l.pos++
+		return Token{COLON, ""}
 	} else if l.currChar() == '=' {
 		l.pos++
 		return Token{EQUAL, ""}
@@ -118,6 +131,8 @@ func (l *Lexer) nextToken() Token {
 			return Token{METHOD, ""}
 		} else if value.String() == "class" {
 			return Token{CLASS, ""}
+		} else if value.String() == "return" {
+			return Token{RETURN, ""}
 		} else {
 			return Token{IDENTIFIER, value.String()}
 		}

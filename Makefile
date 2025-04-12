@@ -1,5 +1,5 @@
 
-test:
+test: clean
 	go run main test.yeol
 	clang test.ll -o test	
 

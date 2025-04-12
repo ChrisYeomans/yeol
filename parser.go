@@ -1,5 +1,7 @@
 package main
 
+import "slices"
+
 type InstType string
 
 const (
@@ -9,6 +11,7 @@ const (
 	INST_ELSE   InstType = "INST_ELSE"
 	INST_METHOD InstType = "INST_METHOD"
 	INST_CLASS  InstType = "INST_CLASS"
+	INST_RETURN InstType = "INST_RETURN"
 )
 
 type ExprType string
@@ -55,6 +58,7 @@ type TermNode struct {
 
 type AssignNode struct {
 	identifier string
+	typeName   string
 	expr       ExprNode
 }
 
@@ -81,8 +85,14 @@ type ClassNode struct {
 
 type MethodNode struct {
 	methodName string
+	parameters map[string]string
+	returnType string
 	varNames   []string
 	blockNode  BlockNode
+}
+
+type ReturnNode struct {
+	exprNode ExprNode
 }
 
 type InstNode struct {
@@ -92,6 +102,7 @@ type InstNode struct {
 	printNode  PrintNode
 	methodNode MethodNode
 	classNode  ClassNode
+	returnNode ReturnNode
 }
 
 type ProgramNode struct {
@@ -130,6 +141,29 @@ func (p *Parser) parserAdvance() {
 		panic("Error finished all tokens")
 	}
 	p.index++
+}
+
+func (p *Parser) parseParameters() map[string]string {
+	parameters := make(map[string]string)
+	token := p.parserCurrent()
+	var key string
+	var val string
+	for token.tokenType != CLOSE_PAREN {
+		p.parserAdvance()
+		key = p.parserCurrent().value
+		p.parserAdvance()
+		if p.parserCurrent().tokenType != COLON {
+			panic("Expected : in method parameter decleration")
+		}
+		p.parserAdvance()
+		val = p.parserCurrent().value
+		parameters[key] = val
+		p.parserAdvance()
+		token = p.parserCurrent()
+	}
+	p.parserAdvance()
+
+	return parameters
 }
 
 func (p *Parser) parseTerm() TermNode {
@@ -202,11 +236,23 @@ func (p *Parser) parseBlock() BlockNode {
 	}
 }
 
+func (p *Parser) checkTypeValid(typeName string) {
+	primitaveTypes := []string{"int", "string"}
+	// TODO: add more primitaves and user types
+	if !slices.Contains(primitaveTypes, typeName) {
+		panic("Unknown type: " + typeName)
+	}
+}
+
 func (p *Parser) parseAssign() InstNode {
 	p.parserAdvance()
 	token := p.parserCurrent()
 	instNode := InstNode{}
 	instNode.instType = INST_ASSIGN
+	instNode.assignNode.typeName = token.value
+	p.checkTypeValid(token.value)
+	p.parserAdvance()
+	token = p.parserCurrent()
 	instNode.assignNode.identifier = token.value
 	p.parserAdvance()
 	token = p.parserCurrent()
@@ -266,6 +312,20 @@ func (p *Parser) parseMethod() InstNode {
 	p.parserAdvance()
 	nameToken := p.parserCurrent()
 	p.parserAdvance()
+	if p.parserCurrent().tokenType == OPEN_PAREN {
+		p.parserAdvance()
+		instNode.methodNode.parameters = p.parseParameters()
+	} else {
+		panic("Expected ( in method definition")
+	}
+	if p.parserCurrent().tokenType == COLON {
+		p.parserAdvance()
+		instNode.methodNode.returnType = p.parserCurrent().value
+		p.parserAdvance()
+	} else {
+		instNode.methodNode.returnType = "void"
+	}
+
 	methodBlockNode := p.parseBlock()
 	instNode.methodNode.blockNode = methodBlockNode
 	instNode.methodNode.methodName = nameToken.value
@@ -273,21 +333,32 @@ func (p *Parser) parseMethod() InstNode {
 	return instNode
 }
 
+func (p *Parser) parseReturn() InstNode {
+	instNode := InstNode{}
+	instNode.instType = INST_RETURN
+	p.parserAdvance()
+	instNode.returnNode.exprNode = p.parseExpr()
+	return instNode
+}
+
 func (p *Parser) parseInst() InstNode {
 	var token Token
 	var instNode InstNode
 	token = p.parserCurrent()
-	if token.tokenType == LET {
+	switch token.tokenType {
+	case LET:
 		instNode = p.parseAssign()
-	} else if token.tokenType == IF {
+	case IF:
 		instNode = p.parseIf()
-	} else if token.tokenType == PRINT {
+	case PRINT:
 		instNode = p.parsePrint()
-	} else if token.tokenType == CLASS {
-		p.parseClass()
-	} else if token.tokenType == METHOD {
-		p.parseMethod()
-	} else {
+	case CLASS:
+		instNode = p.parseClass()
+	case METHOD:
+		instNode = p.parseMethod()
+	case RETURN:
+		instNode = p.parseReturn()
+	default:
 		p.parserAdvance()
 	}
 	return instNode
